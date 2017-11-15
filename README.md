@@ -29,19 +29,20 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 * Test: 2,717 examples
 * Total: 10,717 examples
 
-| Relation           | Frequency     | Positive | IAA   |
-|--------------------|---------------|----------|-------|
-| Cause-Effect       | 1,331 (12.4%) | 91.2%    | 79.0% |
-| Component-Whole    | 1,253 (11.7%) | 84.3%    | 70.0% |
-| Entity-Destination | 1,137 (10.6%) | 80.1%    | 75.2% |
-| Entity-Origin      | 974 (9.1%)    | 69.2%    | 58.2% |
-| Product-Producer   | 948 (8.8%)    | 66.3%    | 84.8% |
-| Member-Collection  | 923 (8.6%)    | 74.7%    | 68.2% |
-| Message-Topic      | 895 (8.4%)    | 74.4%    | 72.4% |
-| Content-Container  | 732 (6.8%)    | 59.3%    | 95.8% |
-| Instrument-Agency  | 660 (6.2%)    | 60.8%    | 65.0% |
-| Other              | 1,864 (17.4%) |
-(*IAA = Inter-Annotator Agreement)
+	| Relation           | Frequency     | Positive | IAA   |
+	|--------------------|:-------------:|:--------:|:-----:|
+	| Cause-Effect       | 1,331 (12.4%) | 91.2%    | 79.0% |
+	| Component-Whole    | 1,253 (11.7%) | 84.3%    | 70.0% |
+	| Entity-Destination | 1,137 (10.6%) | 80.1%    | 75.2% |
+	| Entity-Origin      | 974 (9.1%)    | 69.2%    | 58.2% |
+	| Product-Producer   | 948 (8.8%)    | 66.3%    | 84.8% |
+	| Member-Collection  | 923 (8.6%)    | 74.7%    | 68.2% |
+	| Message-Topic      | 895 (8.4%)    | 74.4%    | 72.4% |
+	| Content-Container  | 732 (6.8%)    | 59.3%    | 95.8% |
+	| Instrument-Agency  | 660 (6.2%)    | 60.8%    | 65.0% |
+	| Other              | 1,864 (17.4%) |          |       |
+	
+	(*IAA = Inter-Annotator Agreement)
 
 
 ## Convolutional Neural Networks
