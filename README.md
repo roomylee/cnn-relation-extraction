@@ -12,6 +12,7 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 	* “The cup contained **<U>tea</U>** from dried **<U>ginseng</U>**.” 
 		<br> → *ENTITY-ORIGIN(tea, ginseng)*
 
+
 ### The Inventory of Semantic Relations
 1. *Cause-Effect(CE)*: An event or object leads to an effect(those cancers were caused by radiation exposures)
 2. *Instrument-Agency(IA)*: An agent uses an instrument(phone operator)
@@ -24,25 +25,24 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 9. *Message-Topic(CT)*: An act of communication, written or spoken, is about a topic (the lecture was about semantics)
 10. *OTHER*: If none of the above nine relations appears to be suitable.
 
-### Distribution for Dataset([Download](https://drive.google.com/file/d/0B_jQiLugGTAkMDQ5ZjZiMTUtMzQ1Yy00YWNmLWJlZDYtOWY1ZDMwY2U4YjFk/view?layout=list&ddrp=1&sort=name&num=50#))
-* Training: 8,000 examples
-* Test: 2,717 examples
-* Total: 10,717 examples
 
-	| Relation           | Frequency     | Positive | IAA   |
-	|--------------------|:-------------:|:--------:|:-----:|
-	| Cause-Effect       | 1,331 (12.4%) | 91.2%    | 79.0% |
-	| Component-Whole    | 1,253 (11.7%) | 84.3%    | 70.0% |
-	| Entity-Destination | 1,137 (10.6%) | 80.1%    | 75.2% |
-	| Entity-Origin      | 974 (9.1%)    | 69.2%    | 58.2% |
-	| Product-Producer   | 948 (8.8%)    | 66.3%    | 84.8% |
-	| Member-Collection  | 923 (8.6%)    | 74.7%    | 68.2% |
-	| Message-Topic      | 895 (8.4%)    | 74.4%    | 72.4% |
-	| Content-Container  | 732 (6.8%)    | 59.3%    | 95.8% |
-	| Instrument-Agency  | 660 (6.2%)    | 60.8%    | 65.0% |
-	| Other              | 1,864 (17.4%) |          |       |
-	
-	(*IAA = Inter-Annotator Agreement)
+### Distribution for Dataset
+* **SemEval-2010 Task #8 Dataset [[Download](https://drive.google.com/file/d/0B_jQiLugGTAkMDQ5ZjZiMTUtMzQ1Yy00YWNmLWJlZDYtOWY1ZDMwY2U4YjFk/view?layout=list&ddrp=1&sort=name&num=50#)]**
+
+| Relation           | Train Data          | Test Data           | Total Data           |
+|--------------------|:-------------------:|:-------------------:|:--------------------:|
+| Cause-Effect       | 1,003 (12.54%)      | 328 (12.07%)        | 1331 (12.42%)        |
+| Instrument-Agency  | 504 (6.30%)         | 156 (5.74%)         | 660 (6.16%)          |
+| Product-Producer   | 717 (8.96%)         | 231 (8.50%)         | 948 (8.85%)          |
+| Content-Container  | 540 (6.75%)         | 192 (7.07%)         | 732 (6.83%)          |
+| Entity-Origin      | 716 (8.95%)         | 258 (9.50%)         | 974 (9.09%)          |
+| Entity-Destination | 845 (10.56%)        | 292 (10.75%)        | 1137 (10.61%)        |
+| Component-Whole    | 941 (11.76%)        | 312 (11.48%)        | 1253 (11.69%)        |
+| Member-Collection  | 690 (8.63%)         | 233 (8.58%)         | 923 (8.61%)          |
+| Message-Topic      | 634 (7.92%)         | 261 (9.61%)         | 895 (8.35%)          |
+| Other              | 1,410 (17.63%)      | 454 (16.71%)        | 1864 (17.39%)        |
+| **Total**          | **8,000 (100.00%)** | **2,717 (100.00%)** | **10,717 (100.00%)** |
+
 
 
 ## Convolutional Neural Networks
@@ -51,5 +51,7 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 </p>
 
 
+## Reference
+* **Relation Extraction: Perspective from Convolutional Neural Networks** (NAACL 2015), TH Nguyen et al. [[pdf]](http://www.cs.nyu.edu/~thien/pubs/vector15.pdf)
 
 
