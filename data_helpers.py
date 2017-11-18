@@ -1,5 +1,46 @@
 import numpy as np
 import pandas as pd
+import nltk
+
+
+def convertFile(filepath, outputpath):
+    data = []
+    lines = [line.strip() for line in open(filepath)]
+    for idx in range(0, len(lines), 4):
+        id = lines[idx].split("\t")[0]
+        label = lines[idx + 1]
+
+        sentence = lines[idx].split("\t")[1][1:-1]
+        sentence = sentence.replace("<e1>", " _e1_ ").replace("</e1>", " _/e1_ ")
+        sentence = sentence.replace("<e2>", " _e2_ ").replace("</e2>", " _/e2_ ")
+        tokens = nltk.word_tokenize(sentence)
+
+        tokens.remove('_/e1_')
+        tokens.remove('_/e2_')
+
+        e1 = tokens.index("_e1_")
+        del tokens[e1]
+
+        e2 = tokens.index("_e2_")
+        del tokens[e2]
+
+        sentence = " ".join(tokens)
+
+        data.append([id, sentence, e1, e2, label])
+
+    df = pd.DataFrame(data=data, columns=["id", "sentence", "e1_pos", "e2_pos", "label"])
+    df.to_csv(outputpath, index=False)
+
+
+if __name__ == "__main__":
+    trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
+    testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
+
+    convertFile(trainFile, "data/train.csv")
+    convertFile(testFile, "data/test.csv")
+
+    print("Train / Test file created")
+
 
 
 def load_data_and_labels(path):
@@ -73,7 +114,6 @@ def load_test_data(path):
     print('image_width => {0}\nimage_height => {1}'.format(image_width, image_height))
 
     return images
-
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
