@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import nltk
+from WordVector import WordVector
 
 
 def convertFile(filepath, outputpath):
@@ -8,7 +9,7 @@ def convertFile(filepath, outputpath):
     lines = [line.strip() for line in open(filepath)]
     for idx in range(0, len(lines), 4):
         id = lines[idx].split("\t")[0]
-        label = lines[idx + 1]
+        relation = lines[idx + 1]
 
         sentence = lines[idx].split("\t")[1][1:-1]
         sentence = sentence.replace("<e1>", " _e1_ ").replace("</e1>", " _/e1_ ")
@@ -26,45 +27,54 @@ def convertFile(filepath, outputpath):
 
         sentence = " ".join(tokens)
 
-        data.append([id, sentence, e1, e2, label])
+        data.append([id, sentence, e1, e2, relation])
 
-    df = pd.DataFrame(data=data, columns=["id", "sentence", "e1_pos", "e2_pos", "label"])
+    df = pd.DataFrame(data=data, columns=["id", "sentence", "e1_pos", "e2_pos", "relation"])
+    labelsMapping = {'Other': 0,
+                     'Message-Topic(e1,e2)': 1, 'Message-Topic(e2,e1)': 2,
+                     'Product-Producer(e1,e2)': 3, 'Product-Producer(e2,e1)': 4,
+                     'Instrument-Agency(e1,e2)': 5, 'Instrument-Agency(e2,e1)': 6,
+                     'Entity-Destination(e1,e2)': 7, 'Entity-Destination(e2,e1)': 8,
+                     'Cause-Effect(e1,e2)': 9, 'Cause-Effect(e2,e1)': 10,
+                     'Component-Whole(e1,e2)': 11, 'Component-Whole(e2,e1)': 12,
+                     'Entity-Origin(e1,e2)': 13, 'Entity-Origin(e2,e1)': 14,
+                     'Member-Collection(e1,e2)': 15, 'Member-Collection(e2,e1)': 16,
+                     'Content-Container(e1,e2)': 17, 'Content-Container(e2,e1)': 18}
+    df['label'] = [labelsMapping[r] for r in df['relation']]
+
     df.to_csv(outputpath, index=False)
-
-
-if __name__ == "__main__":
-    trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
-    testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
-
-    convertFile(trainFile, "data/train.csv")
-    convertFile(testFile, "data/test.csv")
-
-    print("Train / Test file created")
-
 
 
 def load_data_and_labels(path):
     # read training data from CSV file
-    data = pd.read_csv(path)
+    df = pd.read_csv(path)
 
-    print('data({0[0]},{0[1]})'.format(data.shape))
-    print(data.head())
+    # load word2vec model
+    w2v = WordVector(dim=50)
 
-    images = data.iloc[:, 1:].values
-    images = images.astype(np.float)
+    # construct Images Data
+    images = []
+    for df_idx in range(len(df)):
+        tokens = nltk.word_tokenize(df.iloc[df_idx]['sentence'])
+        word_vector = w2v.model[tokens].tolist()
+        pos1 = df.iloc[df_idx]['e1_pos']
+        pos2 = df.iloc[df_idx]['e2_pos']
 
-    # convert from [0:255] => [0.0:1.0]
-    images = np.multiply(images, 1.0 / 255.0)
-    print('images({0[0]},{0[1]})'.format(images.shape))
+        for word_idx in range(len(word_vector)):
+            dist1 = word_idx - pos1
+            dist2 = word_idx - pos2
+            word_vector[word_idx].append(dist1)
+            word_vector[word_idx].append(dist2)
 
-    image_size = images.shape[1]
-    print('image_size => {0}'.format(image_size))
+        images.append(np.array(word_vector))
+    images = np.array(images)
 
-    # in this case all images are square
-    image_width = image_height = np.ceil(np.sqrt(image_size)).astype(np.uint16)
-    print('image_width => {0}\nimage_height => {1}'.format(image_width, image_height))
+    print('images({0[0]},)'.format(images.shape))
+    print('images width = {0}'.format(len(images[0][0])))
+    print('images[{0}][{1}] => {2}'.format(10, 0, images[10][0]))
 
-    labels_flat = data['label'].values.ravel()
+    # construct Label Data
+    labels_flat = df['label'].values.ravel()
     print('labels_flat({0})'.format(len(labels_flat)))
     print('labels_flat[{0}] => {1}'.format(10, labels_flat[10]))
 
@@ -75,7 +85,7 @@ def load_data_and_labels(path):
     # 0 => [1 0 0 0 0 0 0 0 0 0]
     # 1 => [0 1 0 0 0 0 0 0 0 0]
     # ...
-    # 9 => [0 0 0 0 0 0 0 0 0 1]
+    # 18 => [0 0 0 0 0 0 0 0 0 1]
     def dense_to_one_hot(labels_dense, num_classes):
         num_labels = labels_dense.shape[0]
         index_offset = np.arange(num_labels) * num_classes
@@ -86,11 +96,11 @@ def load_data_and_labels(path):
     labels = dense_to_one_hot(labels_flat, labels_count)
     labels = labels.astype(np.uint8)
 
-    IMAGE_TO_DISPLAY = 10
     print('labels({0[0]},{0[1]})'.format(labels.shape))
-    print('labels[{0}] => {1}'.format(IMAGE_TO_DISPLAY, labels[IMAGE_TO_DISPLAY]))
+    print('labels[{0}] => {1}'.format(10, labels[10]))
 
     return images, labels
+
 
 def load_test_data(path):
     # read training data from CSV file
@@ -133,3 +143,16 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
+
+
+
+if __name__ == "__main__":
+    # trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
+    # testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
+    #
+    # convertFile(trainFile, "data/train.csv")
+    # convertFile(testFile, "data/test.csv")
+    #
+    # print("Train / Test file created")
+
+    load_data_and_labels("data/test.csv")
