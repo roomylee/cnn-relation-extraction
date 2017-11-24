@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import nltk
+import gensim
+import os
 from WordVector import WordVector
 
 
@@ -50,7 +52,8 @@ def load_data_and_labels(path):
     df = pd.read_csv(path)
 
     # load word2vec model
-    w2v = WordVector(dim=50)
+    #w2v = WordVector(dim=50)
+    w2v = gensim.models.KeyedVectors.load_word2vec_format(os.path.dirname(__file__)+'/wv_model/GoogleNews-vectors-negative300.bin', binary=True)
 
     max_sentence_length = max([len(nltk.word_tokenize(x)) for x in df['sentence']])
     print('max sentence length = {0}'.format(max_sentence_length))
@@ -59,7 +62,7 @@ def load_data_and_labels(path):
     images = []
     for df_idx in range(len(df)):
         tokens = nltk.word_tokenize(df.iloc[df_idx]['sentence'])
-        word_vector = w2v.model[tokens]
+        word_vector = w2v[tokens]
         pos1 = df.iloc[df_idx]['e1_pos']
         pos2 = df.iloc[df_idx]['e2_pos']
 
@@ -72,7 +75,7 @@ def load_data_and_labels(path):
 
         # padding
         for _ in range(max_sentence_length - len(tokens)):
-            word_vector = np.append(word_vector, np.zeros((1, 52)), axis=0)
+            word_vector = np.append(word_vector, np.zeros((1, 302)), axis=0)
 
         images.append(word_vector.flatten())
     images = np.array(images)
