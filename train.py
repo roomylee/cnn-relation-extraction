@@ -8,7 +8,7 @@ def train(batch_size=50,
           epochs=2500,
           learning_rate=1e-4,
           dropout_keep_prob=0.5):
-    input_x = tf.placeholder(tf.float32, shape=[None, 97 * 52], name='input_x')
+    input_x = tf.placeholder(tf.float32, shape=[None, 97 * 302], name='input_x')
     input_y = tf.placeholder(tf.float32, shape=[None, 19], name='input_y')
     keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
 
