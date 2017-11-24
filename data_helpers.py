@@ -52,26 +52,34 @@ def load_data_and_labels(path):
     # load word2vec model
     w2v = WordVector(dim=50)
 
+    max_sentence_length = max([len(nltk.word_tokenize(x)) for x in df['sentence']])
+    print('max sentence length = {0}'.format(max_sentence_length))
+
     # construct Images Data
     images = []
     for df_idx in range(len(df)):
         tokens = nltk.word_tokenize(df.iloc[df_idx]['sentence'])
-        word_vector = w2v.model[tokens].tolist()
+        word_vector = w2v.model[tokens]
         pos1 = df.iloc[df_idx]['e1_pos']
         pos2 = df.iloc[df_idx]['e2_pos']
 
+        dist1 = []
+        dist2 = []
         for word_idx in range(len(word_vector)):
-            dist1 = word_idx - pos1
-            dist2 = word_idx - pos2
-            word_vector[word_idx].append(dist1)
-            word_vector[word_idx].append(dist2)
+            dist1.append(word_idx - pos1)
+            dist2.append(word_idx - pos2)
+        word_vector = np.concatenate((word_vector, np.array([dist1, dist2]).T), axis=1)
 
-        images.append(np.array(word_vector))
+        # padding
+        for _ in range(max_sentence_length - len(tokens)):
+            word_vector = np.append(word_vector, np.zeros((1, 52)), axis=0)
+
+        images.append(word_vector.flatten())
     images = np.array(images)
 
-    print('images({0[0]},)'.format(images.shape))
-    print('images width = {0}'.format(len(images[0][0])))
-    print('images[{0}][{1}] => {2}'.format(10, 0, images[10][0]))
+    print('images count({0})'.format(images.shape[0]))
+    print('images width({0})'.format(images.shape[1]))
+    print('images[{0}] => {1}'.format(10, images[10]))
 
     # construct Label Data
     labels_flat = df['label'].values.ravel()
