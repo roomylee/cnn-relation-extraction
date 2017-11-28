@@ -7,6 +7,8 @@ from WordVector import WordVector
 
 
 def convertFile(filepath, outputpath):
+    w2v = gensim.models.KeyedVectors.load_word2vec_format(
+        os.path.dirname(__file__) + '/wv_model/GoogleNews-vectors-negative300.bin', binary=True)
     data = []
     lines = [line.strip() for line in open(filepath)]
     for idx in range(0, len(lines), 4):
@@ -16,16 +18,37 @@ def convertFile(filepath, outputpath):
         sentence = lines[idx].split("\t")[1][1:-1]
         sentence = sentence.replace("<e1>", " _e1_ ").replace("</e1>", " _/e1_ ")
         sentence = sentence.replace("<e2>", " _e2_ ").replace("</e2>", " _/e2_ ")
+        sentence = sentence.replace("etc.", " etc")
+        sentence = sentence.replace("vs.", " vs")
+        sentence = sentence.replace("Jan.", "January")
+        sentence = sentence.replace("Feb.", "February")
+        sentence = sentence.replace("Mar.", "March")
+        sentence = sentence.replace("Apr.", "April")
+        sentence = sentence.replace("May.", "May")
+        sentence = sentence.replace("Jun.", "June")
+        sentence = sentence.replace("Jul.", "July")
+        sentence = sentence.replace("Aug.", "August")
+        sentence = sentence.replace("Sep.", "September")
+        sentence = sentence.replace("Oct.", "October")
+        sentence = sentence.replace("Nov.", "November")
+        sentence = sentence.replace("Dec.", "December")
+
         tokens = nltk.word_tokenize(sentence)
 
-        tokens.remove('_/e1_')
-        tokens.remove('_/e2_')
+        remove_list = []
+        for token in tokens:
+            if token not in w2v.vocab:
+                remove_list.append(token)
 
-        e1 = tokens.index("_e1_")
-        del tokens[e1]
-
-        e2 = tokens.index("_e2_")
-        del tokens[e2]
+        e1 = -1
+        e2 = -1
+        for remove_word in remove_list:
+            idx = tokens.index(remove_word)
+            if remove_word == "_e1_":
+                e1 = idx
+            elif remove_word == "_e2_":
+                e2 = idx
+            del tokens[idx]
 
         sentence = " ".join(tokens)
 
@@ -53,7 +76,8 @@ def load_data_and_labels(path):
 
     # load word2vec model
     #w2v = WordVector(dim=50)
-    w2v = gensim.models.KeyedVectors.load_word2vec_format(os.path.dirname(__file__)+'/wv_model/GoogleNews-vectors-negative300.bin', binary=True)
+    w2v = gensim.models.KeyedVectors.load_word2vec_format(
+        os.path.dirname(__file__) + '/wv_model/GoogleNews-vectors-negative300.bin', binary=True)
 
     max_sentence_length = max([len(nltk.word_tokenize(x)) for x in df['sentence']])
     print('max sentence length = {0}'.format(max_sentence_length))
@@ -69,13 +93,23 @@ def load_data_and_labels(path):
         dist1 = []
         dist2 = []
         for word_idx in range(len(word_vector)):
-            dist1.append(word_idx - pos1)
-            dist2.append(word_idx - pos2)
-        word_vector = np.concatenate((word_vector, np.array([dist1, dist2]).T), axis=1)
+            di1 = np.zeros(2 * max_sentence_length - 1)
+            di1[(max_sentence_length - 1) + word_idx - pos1] = 1
+            dist1.append(di1)
+
+            di2 = np.zeros(2 * max_sentence_length - 1)
+            di2[(max_sentence_length - 1) + word_idx - pos2] = 1
+            dist2.append(di2)
+
+        dist1 = np.array(dist1)
+        dist2 = np.array(dist2)
+
+        word_vector = np.concatenate((word_vector, dist1), axis=1)
+        word_vector = np.concatenate((word_vector, dist2), axis=1)
 
         # padding
         for _ in range(max_sentence_length - len(tokens)):
-            word_vector = np.append(word_vector, np.zeros((1, 302)), axis=0)
+            word_vector = np.append(word_vector, np.zeros((1, 300 + 2*(2*max_sentence_length-1))), axis=0)
 
         images.append(word_vector.flatten())
     images = np.array(images)
@@ -136,13 +170,14 @@ def load_test_data(path):
 
     return images
 
+
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     Generates a batch iterator for a dataset.
     """
     data = np.array(data)
     data_size = len(data)
-    num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
+    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     for epoch in range(num_epochs):
         # Shuffle the data at each epoch
         if shuffle:
@@ -156,13 +191,12 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             yield shuffled_data[start_index:end_index]
 
 
-
 if __name__ == "__main__":
     # trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
     # testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
     #
-    # convertFile(trainFile, "data/train.csv")
-    # convertFile(testFile, "data/test.csv")
+    # convertFile(trainFile, "data/train_google.csv")
+    # convertFile(testFile, "data/test_google.csv")
     #
     # print("Train / Test file created")
 

@@ -8,7 +8,7 @@ def train(batch_size=50,
           epochs=2500,
           learning_rate=1e-4,
           dropout_keep_prob=0.5):
-    input_x = tf.placeholder(tf.float32, shape=[None, 97 * 302], name='input_x')
+    input_x = tf.placeholder(tf.float32, shape=[None, 64 * 554], name='input_x')
     input_y = tf.placeholder(tf.float32, shape=[None, 19], name='input_y')
     keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
 
@@ -33,7 +33,7 @@ def train(batch_size=50,
     sess.run(tf.global_variables_initializer())
 
     display_step = 1
-    train_images, train_labels = data_helpers.load_data_and_labels('data/train.csv')
+    train_images, train_labels = data_helpers.load_data_and_labels('data/train_google.csv')
     with sess.as_default():
         batches = data_helpers.batch_iter(list(zip(train_images, train_labels)), batch_size, epochs)
         for step, batch in enumerate(batches):

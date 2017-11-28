@@ -10,13 +10,13 @@ class ConvNet:
         self.build_model()
 
     def build_model(self):
-        image = tf.reshape(self.input_x, [-1, 97, 302, 1])
+        image = tf.reshape(self.input_x, [-1, 64, 554, 1])
 
         pooled_outputs = []
         filter_sizes = [2, 3, 4, 5]
         for filter_size in filter_sizes:
             with tf.name_scope('conv_layer%s' % filter_size):
-                W_conv = ConvNet.weight_variable([filter_size, 302, 1, 128])
+                W_conv = ConvNet.weight_variable([filter_size, 554, 1, 128])
                 b_conv = ConvNet.bias_variable([128])
 
                 h_conv = tf.nn.relu(ConvNet.conv2d(image, W_conv) + b_conv)
@@ -61,4 +61,4 @@ class ConvNet:
         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='VALID')
 
     def max_pool_1D(x, filter_size):
-        return tf.nn.max_pool(x, ksize=[1, 97-filter_size+1, 1, 1], strides=[1, 1, 1, 1], padding='VALID')
+        return tf.nn.max_pool(x, ksize=[1, 64-filter_size+1, 1, 1], strides=[1, 1, 1, 1], padding='VALID')
