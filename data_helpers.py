@@ -3,7 +3,22 @@ import pandas as pd
 import nltk
 import gensim
 import os
+import tensorflow as tf
 from WordVector import WordVector
+
+
+train_df = pd.read_csv("data/train_google.csv")
+test_df = pd.read_csv("data/test_google.csv")
+
+train_sentence_length = max([len(nltk.word_tokenize(x)) for x in train_df['sentence']])
+test_sentence_length = max([len(nltk.word_tokenize(x)) for x in test_df['sentence']])
+MAX_SENTENCE_LENGTH = max(train_sentence_length, test_sentence_length)
+print('MAX_SENTENCE_LENGTH={0}'.format(MAX_SENTENCE_LENGTH))
+
+WORD_EMBEDDING_DIM = 300
+POS_EMBEDDING_DIM = 0
+FEATURE_DIMENSION = WORD_EMBEDDING_DIM + POS_EMBEDDING_DIM
+LABELS_COUNT = 19
 
 
 def convertFile(filepath, outputpath):
@@ -74,52 +89,30 @@ def load_data_and_labels(path):
     # read training data from CSV file
     df = pd.read_csv(path)
 
-    # load word2vec model
-    #w2v = WordVector(dim=50)
-    w2v = gensim.models.KeyedVectors.load_word2vec_format(
-        os.path.dirname(__file__) + '/wv_model/GoogleNews-vectors-negative300.bin', binary=True)
+    # Text data
+    x_text = df['sentence'].tolist()
 
-    max_sentence_length = max([len(nltk.word_tokenize(x)) for x in df['sentence']])
-    print('max sentence length = {0}'.format(max_sentence_length))
-
-    # construct Images Data
-    images = []
+    # Position data
+    dist = []
     for df_idx in range(len(df)):
-        tokens = nltk.word_tokenize(df.iloc[df_idx]['sentence'])
-        word_vector = w2v[tokens]
+        sentence = df.iloc[df_idx]['sentence']
+        tokens = nltk.word_tokenize(sentence)
         pos1 = df.iloc[df_idx]['e1_pos']
         pos2 = df.iloc[df_idx]['e2_pos']
 
-        dist1 = []
-        dist2 = []
-        for word_idx in range(len(word_vector)):
-            di1 = np.zeros(2 * max_sentence_length - 1)
-            di1[(max_sentence_length - 1) + word_idx - pos1] = 1
-            dist1.append(di1)
+        di1 = ""
+        di2 = ""
+        for word_idx in range(len(tokens)):
+            di1 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos1) + " "
+            di2 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos2) + " "
+        for _ in range(MAX_SENTENCE_LENGTH - len(tokens)):
+            di1 += "999 "
+            di2 += "999 "
+        dist.append(di1+di2)
 
-            di2 = np.zeros(2 * max_sentence_length - 1)
-            di2[(max_sentence_length - 1) + word_idx - pos2] = 1
-            dist2.append(di2)
-
-        dist1 = np.array(dist1)
-        dist2 = np.array(dist2)
-
-        word_vector = np.concatenate((word_vector, dist1), axis=1)
-        word_vector = np.concatenate((word_vector, dist2), axis=1)
-
-        # padding
-        for _ in range(max_sentence_length - len(tokens)):
-            word_vector = np.append(word_vector, np.zeros((1, 300 + 2*(2*max_sentence_length-1))), axis=0)
-
-        images.append(word_vector.flatten())
-    images = np.array(images)
-
-    print('images count({0})'.format(images.shape[0]))
-    print('images width({0})'.format(images.shape[1]))
-    print('images[{0}] => {1}'.format(10, images[10]))
-
-    # construct Label Data
-    labels_flat = df['label'].values.ravel()
+    # Label Data
+    y = df['label']
+    labels_flat = y.values.ravel()
     print('labels_flat({0})'.format(len(labels_flat)))
     print('labels_flat[{0}] => {1}'.format(10, labels_flat[10]))
 
@@ -127,10 +120,10 @@ def load_data_and_labels(path):
     print('labels_count => {0}'.format(labels_count))
 
     # convert class labels from scalars to one-hot vectors
-    # 0 => [1 0 0 0 0 0 0 0 0 0]
-    # 1 => [0 1 0 0 0 0 0 0 0 0]
+    # 0  => [1 0 0 0 0 ... 0 0 0 0 0]
+    # 1  => [0 1 0 0 0 ... 0 0 0 0 0]
     # ...
-    # 18 => [0 0 0 0 0 0 0 0 0 1]
+    # 18 => [0 0 0 0 0 ... 0 0 0 0 1]
     def dense_to_one_hot(labels_dense, num_classes):
         num_labels = labels_dense.shape[0]
         index_offset = np.arange(num_labels) * num_classes
@@ -144,31 +137,7 @@ def load_data_and_labels(path):
     print('labels({0[0]},{0[1]})'.format(labels.shape))
     print('labels[{0}] => {1}'.format(10, labels[10]))
 
-    return images, labels
-
-
-def load_test_data(path):
-    # read training data from CSV file
-    data = pd.read_csv(path)
-
-    print('data({0[0]},{0[1]})'.format(data.shape))
-    print(data.head())
-
-    images = data.values
-    images = images.astype(np.float)
-
-    # convert from [0:255] => [0.0:1.0]
-    images = np.multiply(images, 1.0 / 255.0)
-    print('images({0[0]},{0[1]})'.format(images.shape))
-
-    image_size = images.shape[1]
-    print('image_size => {0}'.format(image_size))
-
-    # in this case all images are square
-    image_width = image_height = np.ceil(np.sqrt(image_size)).astype(np.uint16)
-    print('image_width => {0}\nimage_height => {1}'.format(image_width, image_height))
-
-    return images
+    return x_text, dist, labels
 
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
@@ -190,6 +159,11 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
 
+def feature_concat(x, dist):
+    print(x.shape)
+    print(dist.shape)
+    return np.concatenate((x,dist), axis=1)
+
 
 if __name__ == "__main__":
     # trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
@@ -200,4 +174,4 @@ if __name__ == "__main__":
     #
     # print("Train / Test file created")
 
-    load_data_and_labels("data/test.csv")
+    load_data_and_labels("data/test_google.csv")
