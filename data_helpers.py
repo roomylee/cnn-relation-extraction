@@ -1,10 +1,7 @@
 import numpy as np
 import pandas as pd
 import nltk
-import gensim
-import os
-import tensorflow as tf
-from WordVector import WordVector
+import re
 
 
 train_df = pd.read_csv("data/train_google.csv")
@@ -20,10 +17,28 @@ POS_EMBEDDING_DIM = 0
 FEATURE_DIMENSION = WORD_EMBEDDING_DIM + POS_EMBEDDING_DIM
 LABELS_COUNT = 19
 
+def clean_str(string):
+    """
+    Tokenization/string cleaning for all datasets except for SST.
+    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+    """
+    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
+    string = re.sub(r"\'s", " \'s", string)
+    string = re.sub(r"\'ve", " \'ve", string)
+    string = re.sub(r"n\'t", " n\'t", string)
+    string = re.sub(r"\'re", " \'re", string)
+    string = re.sub(r"\'d", " \'d", string)
+    string = re.sub(r"\'ll", " \'ll", string)
+    string = re.sub(r",", " , ", string)
+    string = re.sub(r"!", " ! ", string)
+    string = re.sub(r"\(", " \( ", string)
+    string = re.sub(r"\)", " \) ", string)
+    string = re.sub(r"\?", " \? ", string)
+    string = re.sub(r"\s{2,}", " ", string)
+    return string.strip().lower()
+
 
 def convertFile(filepath, outputpath):
-    w2v = gensim.models.KeyedVectors.load_word2vec_format(
-        os.path.dirname(__file__) + '/wv_model/GoogleNews-vectors-negative300.bin', binary=True)
     data = []
     lines = [line.strip() for line in open(filepath)]
     for idx in range(0, len(lines), 4):
@@ -33,39 +48,20 @@ def convertFile(filepath, outputpath):
         sentence = lines[idx].split("\t")[1][1:-1]
         sentence = sentence.replace("<e1>", " _e1_ ").replace("</e1>", " _/e1_ ")
         sentence = sentence.replace("<e2>", " _e2_ ").replace("</e2>", " _/e2_ ")
-        sentence = sentence.replace("etc.", " etc")
-        sentence = sentence.replace("vs.", " vs")
-        sentence = sentence.replace("Jan.", "January")
-        sentence = sentence.replace("Feb.", "February")
-        sentence = sentence.replace("Mar.", "March")
-        sentence = sentence.replace("Apr.", "April")
-        sentence = sentence.replace("May.", "May")
-        sentence = sentence.replace("Jun.", "June")
-        sentence = sentence.replace("Jul.", "July")
-        sentence = sentence.replace("Aug.", "August")
-        sentence = sentence.replace("Sep.", "September")
-        sentence = sentence.replace("Oct.", "October")
-        sentence = sentence.replace("Nov.", "November")
-        sentence = sentence.replace("Dec.", "December")
 
         tokens = nltk.word_tokenize(sentence)
 
-        remove_list = []
-        for token in tokens:
-            if token not in w2v.vocab:
-                remove_list.append(token)
+        tokens.remove('_/e1_')
+        tokens.remove('_/e2_')
 
-        e1 = -1
-        e2 = -1
-        for remove_word in remove_list:
-            idx = tokens.index(remove_word)
-            if remove_word == "_e1_":
-                e1 = idx
-            elif remove_word == "_e2_":
-                e2 = idx
-            del tokens[idx]
+        e1 = tokens.index("_e1_")
+        del tokens[e1]
+
+        e2 = tokens.index("_e2_")
+        del tokens[e2]
 
         sentence = " ".join(tokens)
+        sentence = clean_str(sentence)
 
         data.append([id, sentence, e1, e2, relation])
 
@@ -166,12 +162,12 @@ def feature_concat(x, dist):
 
 
 if __name__ == "__main__":
-    # trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
-    # testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
-    #
-    # convertFile(trainFile, "data/train_google.csv")
-    # convertFile(testFile, "data/test_google.csv")
-    #
-    # print("Train / Test file created")
+    trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
+    testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
 
-    load_data_and_labels("data/test_google.csv")
+    convertFile(trainFile, "data/train.csv")
+    convertFile(testFile, "data/test.csv")
+
+    print("Train / Test file created")
+    #
+    # load_data_and_labels("data/test_google.csv")

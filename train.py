@@ -12,8 +12,6 @@ import os
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
-tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the negative data.")
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
@@ -182,7 +180,7 @@ def train(x_text, dist, y):
 
 
 def main():
-    x_text, dist, y = data_helpers.load_data_and_labels("data/train_google.csv")
+    x_text, dist, y = data_helpers.load_data_and_labels("data/train.csv")
     train(x_text, dist, y)
 
 if __name__ == "__main__":
