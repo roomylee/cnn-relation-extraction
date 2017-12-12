@@ -2,11 +2,14 @@ import tensorflow as tf
 
 
 class TextCNN:
-    def __init__(self, sequence_length, num_classes, vocab_size,
-                 embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
+    def __init__(self, sequence_length, num_classes,
+                 text_vocab_size, text_embedding_size, dist_vocab_size, dist_embedding_size,
+                 filter_sizes, num_filters, l2_reg_lambda=0.0):
 
         # Placeholders for input, output and dropout
-        self.input_x = tf.placeholder(tf.int32, shape=[None, sequence_length], name='input_x')
+        self.input_text = tf.placeholder(tf.int32, shape=[None, sequence_length], name='input_text')
+        self.input_dist1 = tf.placeholder(tf.int32, shape=[None, sequence_length], name='input_dist1')
+        self.input_dist2 = tf.placeholder(tf.int32, shape=[None, sequence_length], name='input_dist2')
         self.input_y = tf.placeholder(tf.float32, shape=[None, num_classes], name='input_y')
         self.dropout_keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
 
@@ -14,10 +17,24 @@ class TextCNN:
         l2_loss = tf.constant(0.0)
 
         # Embedding layer
-        with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            self.W = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0), name="W")
-            self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
-            self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
+        with tf.device('/cpu:0'), tf.name_scope("text-embedding"):
+            self.W_text = tf.Variable(tf.random_uniform([text_vocab_size, text_embedding_size], -1.0, 1.0), name="W_text")
+            self.text_embedded_chars = tf.nn.embedding_lookup(self.W_text, self.input_text)
+            self.text_embedded_chars_expanded = tf.expand_dims(self.text_embedded_chars, -1)
+        with tf.device('/cpu:0'), tf.name_scope("dist1-embedding"):
+            self.W_dist1 = tf.Variable(tf.random_uniform([dist_vocab_size, dist_embedding_size], -1.0, 1.0), name="W_dist1")
+            self.dist1_embedded_chars = tf.nn.embedding_lookup(self.W_dist1, self.input_dist1)
+            self.dist1_embedded_chars_expanded = tf.expand_dims(self.dist1_embedded_chars, -1)
+        with tf.device('/cpu:0'), tf.name_scope("dist2-embedding"):
+            self.W_dist2 = tf.Variable(tf.random_uniform([dist_vocab_size, dist_embedding_size], -1.0, 1.0), name="W_dist2")
+            self.dist2_embedded_chars = tf.nn.embedding_lookup(self.W_dist2, self.input_dist2)
+            self.dist2_embedded_chars_expanded = tf.expand_dims(self.dist2_embedded_chars, -1)
+
+        self.embedded_chars_expanded = tf.concat([self.text_embedded_chars_expanded,
+                                                  self.dist1_embedded_chars_expanded,
+                                                  self.dist2_embedded_chars_expanded], 2)
+
+        embedding_size = text_embedding_size + 2*dist_embedding_size
 
         # Create a convolution + maxpool layer for each filter size
         pooled_outputs = []
@@ -42,7 +59,6 @@ class TextCNN:
         # Add dropout
         with tf.name_scope("dropout"):
             self.h_drop = tf.nn.dropout(self.h_pool_flat, self.dropout_keep_prob)
-
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
             W = tf.get_variable("W", shape=[num_filters_total, num_classes], initializer=tf.contrib.layers.xavier_initializer())

@@ -12,9 +12,12 @@ import os
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
+tf.flags.DEFINE_integer("max_sentence_length", data_helpers.MAX_SENTENCE_LENGTH, "Max sentence length(containing words count) in train/test data")
+
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("text_embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("dist_embedding_dim", 50, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "2,3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
@@ -35,21 +38,40 @@ FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
 print("\nParameters:")
 for attr, value in sorted(FLAGS.__flags.items()):
-    print("{}={}".format(attr.upper(), value))
+    print("{} = {}".format(attr.upper(), value))
 print("")
 
 
-def train(x_text, dist, y):
+def train(x_text, dist1, dist2, y):
     # Build vocabulary
-    text_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(data_helpers.MAX_SENTENCE_LENGTH)
-    x_vec = np.array(list(text_vocab_processor.fit_transform(x_text)))
+    # Example: x_text[3] = "A misty <e1>ridge</e1> uprises from the <e2>surge</e2>."
+    # ['a misty ridge uprises from the surge <UNK> <UNK> ... <UNK>']
+    # =>
+    # [27 39 40 41 42  1 43  0  0 ... 0]
+    # dimension = MAX_SENTENCE_LENGTH
+    text_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(FLAGS.max_sentence_length)
+    text_vec = np.array(list(text_vocab_processor.fit_transform(x_text)))
     print("Text Vocabulary Size: {:d}".format(len(text_vocab_processor.vocabulary_)))
 
-    dist_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(2*data_helpers.MAX_SENTENCE_LENGTH)
-    dist_vec = np.array(list(dist_vocab_processor.fit_transform(dist)))
+    # Example: dist1[3] = [-2 -1  0  1  2   3   4 999 999 999 ... 999]
+    # [95 96 97 98 99 100 101 999 999 999 ... 999]
+    # =>
+    # [11 12 13 14 15  16  21  17  17  17 ...  17]
+    # dimension = MAX_SENTENCE_LENGTH
+    dist_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(FLAGS.max_sentence_length)
+    dist_vocab_processor.fit(dist1 + dist2)
+    dist1_vec = np.array(list(dist_vocab_processor.fit_transform(dist1)))
+    dist2_vec = np.array(list(dist_vocab_processor.fit_transform(dist2)))
     print("Distance Vocabulary Size: {:d}".format(len(dist_vocab_processor.vocabulary_)))
 
-    x = data_helpers.feature_concat(x_vec, dist_vec)
+    print("text_vec = {0}".format(text_vec.shape))
+    print("dist1_vec = {0}".format(dist1_vec.shape))
+    print("dist2_vec = {0}".format(dist2_vec.shape))
+
+    x = np.array([list(i) for i in zip(text_vec, dist1_vec, dist2_vec)])
+
+    print("x = {0}".format(x.shape))
+    print("y = {0}".format(y.shape))
 
     # Randomly shuffle data
     np.random.seed(10)
@@ -61,6 +83,7 @@ def train(x_text, dist, y):
     # TODO: This is very crude, should use cross-validation
     dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
     x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
+    x_dev = np.array(x_dev).transpose((1, 0, 2))
     y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
     print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
@@ -72,10 +95,12 @@ def train(x_text, dist, y):
         sess = tf.Session(config=session_conf)
         with sess.as_default():
             cnn = TextCNN(
-                sequence_length=x_train.shape[1],
+                sequence_length=x_train.shape[2],
                 num_classes=y_train.shape[1],
-                vocab_size=len(text_vocab_processor.vocabulary_)+len(dist_vocab_processor.vocabulary_),
-                embedding_size=FLAGS.embedding_dim,
+                text_vocab_size=len(text_vocab_processor.vocabulary_),
+                text_embedding_size=FLAGS.text_embedding_dim,
+                dist_vocab_size=len(dist_vocab_processor.vocabulary_),
+                dist_embedding_size=FLAGS.dist_embedding_dim,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                 num_filters=FLAGS.num_filters,
                 l2_reg_lambda=FLAGS.l2_reg_lambda)
@@ -134,7 +159,9 @@ def train(x_text, dist, y):
                 A single training step
                 """
                 feed_dict = {
-                    cnn.input_x: x_batch,
+                    cnn.input_text: x_batch[0],
+                    cnn.input_dist1: x_batch[1],
+                    cnn.input_dist2: x_batch[2],
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
@@ -150,7 +177,9 @@ def train(x_text, dist, y):
                 Evaluates model on a dev set
                 """
                 feed_dict = {
-                    cnn.input_x: x_batch,
+                    cnn.input_text: x_batch[0],
+                    cnn.input_dist1: x_batch[1],
+                    cnn.input_dist2: x_batch[2],
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: 1.0
                 }
@@ -168,6 +197,8 @@ def train(x_text, dist, y):
             # Training loop. For each batch...
             for batch in batches:
                 x_batch, y_batch = zip(*batch)
+                x_batch = np.array(x_batch).transpose((1, 0, 2))
+
                 train_step(x_batch, y_batch)
                 current_step = tf.train.global_step(sess, global_step)
                 if current_step % FLAGS.evaluate_every == 0:
@@ -180,8 +211,8 @@ def train(x_text, dist, y):
 
 
 def main():
-    x_text, dist, y = data_helpers.load_data_and_labels("data/train.csv")
-    train(x_text, dist, y)
+    x_text, dist1, dist2, y = data_helpers.load_data_and_labels("data/train.csv")
+    train(x_text, dist1, dist2, y)
 
 if __name__ == "__main__":
     main()

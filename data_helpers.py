@@ -4,17 +4,13 @@ import nltk
 import re
 
 
-train_df = pd.read_csv("data/train_google.csv")
-test_df = pd.read_csv("data/test_google.csv")
+train_df = pd.read_csv("data/train.csv")
+test_df = pd.read_csv("data/test.csv")
 
 train_sentence_length = max([len(nltk.word_tokenize(x)) for x in train_df['sentence']])
 test_sentence_length = max([len(nltk.word_tokenize(x)) for x in test_df['sentence']])
 MAX_SENTENCE_LENGTH = max(train_sentence_length, test_sentence_length)
-print('MAX_SENTENCE_LENGTH={0}'.format(MAX_SENTENCE_LENGTH))
 
-WORD_EMBEDDING_DIM = 300
-POS_EMBEDDING_DIM = 0
-FEATURE_DIMENSION = WORD_EMBEDDING_DIM + POS_EMBEDDING_DIM
 LABELS_COUNT = 19
 
 def clean_str(string):
@@ -89,22 +85,24 @@ def load_data_and_labels(path):
     x_text = df['sentence'].tolist()
 
     # Position data
-    dist = []
+    dist1 = []
+    dist2 = []
     for df_idx in range(len(df)):
         sentence = df.iloc[df_idx]['sentence']
         tokens = nltk.word_tokenize(sentence)
         pos1 = df.iloc[df_idx]['e1_pos']
         pos2 = df.iloc[df_idx]['e2_pos']
 
-        di1 = ""
-        di2 = ""
+        d1 = ""
+        d2 = ""
         for word_idx in range(len(tokens)):
-            di1 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos1) + " "
-            di2 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos2) + " "
+            d1 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos1) + " "
+            d2 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos2) + " "
         for _ in range(MAX_SENTENCE_LENGTH - len(tokens)):
-            di1 += "999 "
-            di2 += "999 "
-        dist.append(di1+di2)
+            d1 += "999 "
+            d2 += "999 "
+        dist1.append(d1)
+        dist2.append(d2)
 
     # Label Data
     y = df['label']
@@ -132,8 +130,9 @@ def load_data_and_labels(path):
 
     print('labels({0[0]},{0[1]})'.format(labels.shape))
     print('labels[{0}] => {1}'.format(10, labels[10]))
+    print("")
 
-    return x_text, dist, labels
+    return x_text, dist1, dist2, labels
 
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
@@ -154,11 +153,6 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
-
-def feature_concat(x, dist):
-    print(x.shape)
-    print(dist.shape)
-    return np.concatenate((x,dist), axis=1)
 
 
 if __name__ == "__main__":
