@@ -16,7 +16,8 @@ tf.flags.DEFINE_integer("max_sentence_length", data_helpers.MAX_SENTENCE_LENGTH,
 
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("text_embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_integer("text_embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_integer("dist_embedding_dim", 50, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "2,3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
@@ -29,7 +30,7 @@ tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
-tf.flags.DEFINE_float("learning_rate", 1e-4, "Which learning rate to start with.")
+tf.flags.DEFINE_float("learning_rate", 1e-3, "Which learning rate to start with.")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -72,6 +73,7 @@ def train(x_text, dist1, dist2, y):
 
     print("x = {0}".format(x.shape))
     print("y = {0}".format(y.shape))
+    print("")
 
     # Randomly shuffle data
     np.random.seed(10)
@@ -85,8 +87,7 @@ def train(x_text, dist1, dist2, y):
     x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
     x_dev = np.array(x_dev).transpose((1, 0, 2))
     y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
-    print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
-
+    print("Train/Dev split: {:d}/{:d}\n".format(len(y_train), len(y_dev)))
 
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
@@ -154,6 +155,32 @@ def train(x_text, dist1, dist2, y):
             # Initialize all variables
             sess.run(tf.global_variables_initializer())
 
+            if FLAGS.word2vec:
+                # initial matrix with random uniform
+                initW = np.random.uniform(-0.25, 0.25, (len(text_vocab_processor.vocabulary_), FLAGS.text_embedding_dim))
+                # load any vectors from the word2vec
+                print("Load word2vec file {0}".format(FLAGS.word2vec))
+                with open(FLAGS.word2vec, "rb") as f:
+                    header = f.readline()
+                    vocab_size, layer1_size = map(int, header.split())
+                    binary_len = np.dtype('float32').itemsize * layer1_size
+                    for line in range(vocab_size):
+                        word = []
+                        while True:
+                            ch = f.read(1).decode('latin-1')
+                            if ch == ' ':
+                                word = ''.join(word)
+                                break
+                            if ch != '\n':
+                                word.append(ch)
+                        idx = text_vocab_processor.vocabulary_.get(word)
+                        if idx != 0:
+                            initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')
+                        else:
+                            f.read(binary_len)
+                sess.run(cnn.W_text.assign(initW))
+                print("Success to load pre-trained word2vec model!\n")
+
             def train_step(x_batch, y_batch):
                 """
                 A single training step
@@ -210,10 +237,9 @@ def train(x_text, dist1, dist2, y):
                     print("Saved model checkpoint to {}\n".format(path))
 
 
-def main():
+def main(argv=None):
     x_text, dist1, dist2, y = data_helpers.load_data_and_labels("data/train.csv")
     train(x_text, dist1, dist2, y)
 
 if __name__ == "__main__":
-    main()
-    #tf.app.run()
+    tf.app.run()

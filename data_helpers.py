@@ -107,11 +107,8 @@ def load_data_and_labels(path):
     # Label Data
     y = df['label']
     labels_flat = y.values.ravel()
-    print('labels_flat({0})'.format(len(labels_flat)))
-    print('labels_flat[{0}] => {1}'.format(10, labels_flat[10]))
 
     labels_count = np.unique(labels_flat).shape[0]
-    print('labels_count => {0}'.format(labels_count))
 
     # convert class labels from scalars to one-hot vectors
     # 0  => [1 0 0 0 0 ... 0 0 0 0 0]
@@ -127,10 +124,6 @@ def load_data_and_labels(path):
 
     labels = dense_to_one_hot(labels_flat, labels_count)
     labels = labels.astype(np.uint8)
-
-    print('labels({0[0]},{0[1]})'.format(labels.shape))
-    print('labels[{0}] => {1}'.format(10, labels[10]))
-    print("")
 
     return x_text, dist1, dist2, labels
 
