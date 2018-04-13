@@ -4,15 +4,6 @@ import nltk
 import re
 
 
-train_df = pd.read_csv("data/train.csv")
-test_df = pd.read_csv("data/test.csv")
-
-train_sentence_length = max([len(nltk.word_tokenize(x)) for x in train_df['sentence']])
-test_sentence_length = max([len(nltk.word_tokenize(x)) for x in test_df['sentence']])
-MAX_SENTENCE_LENGTH = max(train_sentence_length, test_sentence_length)
-
-LABELS_COUNT = 19
-
 def clean_str(string):
     """
     Tokenization/string cleaning for all datasets except for SST.
@@ -34,9 +25,10 @@ def clean_str(string):
     return string.strip().lower()
 
 
-def convertFile(filepath, outputpath):
+def load_data_and_labels(path):
+    # read training data from CSV file
     data = []
-    lines = [line.strip() for line in open(filepath)]
+    lines = [line.strip() for line in open(path)]
     for idx in range(0, len(lines), 4):
         id = lines[idx].split("\t")[0]
         relation = lines[idx + 1]
@@ -52,7 +44,6 @@ def convertFile(filepath, outputpath):
 
         e1 = tokens.index("_e1_")
         del tokens[e1]
-
         e2 = tokens.index("_e2_")
         del tokens[e2]
 
@@ -74,35 +65,9 @@ def convertFile(filepath, outputpath):
                      'Content-Container(e1,e2)': 17, 'Content-Container(e2,e1)': 18}
     df['label'] = [labelsMapping[r] for r in df['relation']]
 
-    df.to_csv(outputpath, index=False)
-
-
-def load_data_and_labels(path):
-    # read training data from CSV file
-    df = pd.read_csv(path)
-
-    # Text data
     x_text = df['sentence'].tolist()
 
-    # Position data
-    dist1 = []
-    dist2 = []
-    for df_idx in range(len(df)):
-        sentence = df.iloc[df_idx]['sentence']
-        tokens = nltk.word_tokenize(sentence)
-        pos1 = df.iloc[df_idx]['e1_pos']
-        pos2 = df.iloc[df_idx]['e2_pos']
-
-        d1 = ""
-        d2 = ""
-        for word_idx in range(len(tokens)):
-            d1 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos1) + " "
-            d2 += str((MAX_SENTENCE_LENGTH - 1) + word_idx - pos2) + " "
-        for _ in range(MAX_SENTENCE_LENGTH - len(tokens)):
-            d1 += "999 "
-            d2 += "999 "
-        dist1.append(d1)
-        dist2.append(d2)
+    pos1, pos2 = get_relative_position(df)
 
     # Label Data
     y = df['label']
@@ -125,7 +90,31 @@ def load_data_and_labels(path):
     labels = dense_to_one_hot(labels_flat, labels_count)
     labels = labels.astype(np.uint8)
 
-    return x_text, dist1, dist2, labels
+    return x_text, pos1, pos2, labels
+
+
+def get_relative_position(df, max_sentence_length=100):
+    # Position data
+    pos1 = []
+    pos2 = []
+    for df_idx in range(len(df)):
+        sentence = df.iloc[df_idx]['sentence']
+        tokens = nltk.word_tokenize(sentence)
+        e1 = df.iloc[df_idx]['e1_pos']
+        e2 = df.iloc[df_idx]['e2_pos']
+
+        d1 = ""
+        d2 = ""
+        for word_idx in range(len(tokens)):
+            d1 += str((max_sentence_length - 1) + word_idx - e1) + " "
+            d2 += str((max_sentence_length - 1) + word_idx - e2) + " "
+        for _ in range(max_sentence_length - len(tokens)):
+            d1 += "999 "
+            d2 += "999 "
+        pos1.append(d1)
+        pos2.append(d2)
+
+    return pos1, pos2
 
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
@@ -152,9 +141,4 @@ if __name__ == "__main__":
     trainFile = 'SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT'
     testFile = 'SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT'
 
-    convertFile(trainFile, "data/train.csv")
-    convertFile(testFile, "data/test.csv")
-
-    print("Train / Test file created")
-    #
-    # load_data_and_labels("data/test_google.csv")
+    load_data_and_labels(testFile)
