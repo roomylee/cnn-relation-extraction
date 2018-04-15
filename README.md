@@ -1,6 +1,20 @@
-# Relation Extraction using Convolutional Neural Networks
+# Convolutional Neural Networks for Relation Extraction
 
 Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8**: *Multi-Way Classification of Semantic Relations Between Pairs of Nominals*](https://docs.google.com/document/d/1QO_CnmvNRnYwNWu1-QCAeR5ToQYkXUqFeAJbdEhsq7w/preview)) using Convolutional Neural Networks.
+
+<p align="center">
+	<img width="600" height="400" src="https://user-images.githubusercontent.com/15166794/32838125-475cbdba-ca53-11e7-929c-2e27f1aca180.png">
+</p>
+
+
+## Usage
+* train
+
+		$ python train.py 
+
+* evalutation
+
+		$ python eval.py
 
 
 ## SemEval-2010 Task #8
@@ -45,13 +59,8 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 
 
 
-## Convolutional Neural Networks
-<p align="center">
-	<img width="600" height="400" src="https://user-images.githubusercontent.com/15166794/32838125-475cbdba-ca53-11e7-929c-2e27f1aca180.png">
-</p>
-
-
 ## Reference
-* **Relation Extraction: Perspective from Convolutional Neural Networks** (NAACL 2015), TH Nguyen et al. [[pdf]](http://www.cs.nyu.edu/~thien/pubs/vector15.pdf)
+* **Relation Classification via Convolutional Deep Neural Network** (COLING 2014), D Zeng et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Classification_via_Convolutional_Deep_Neural_Network.md)** [[paper]](http://www.aclweb.org/anthology/C14-1220)
+* **Relation Extraction: Perspective from Convolutional Neural Networks** (NAACL 2015), TH Nguyen et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Extraction-Perspective_from_Convolutional_Neural_Networks.md)** [[pdf]](http://www.cs.nyu.edu/~thien/pubs/vector15.pdf)
 
 
