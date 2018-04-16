@@ -10,11 +10,11 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 ## Usage
 * train
 
-		$ python train.py 
+		$ python train.py --train_dir <TRAIN DATA PATH> --word2vec <WORD2VEC MODEL>
 
 * evalutation
 
-		$ python eval.py
+		$ python eval.py --test_dir <TEST DATA PATH>
 
 
 ## SemEval-2010 Task #8
@@ -61,6 +61,6 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 
 ## Reference
 * **Relation Classification via Convolutional Deep Neural Network** (COLING 2014), D Zeng et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Classification_via_Convolutional_Deep_Neural_Network.md)** [[paper]](http://www.aclweb.org/anthology/C14-1220)
-* **Relation Extraction: Perspective from Convolutional Neural Networks** (NAACL 2015), TH Nguyen et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Extraction-Perspective_from_Convolutional_Neural_Networks.md)** [[pdf]](http://www.cs.nyu.edu/~thien/pubs/vector15.pdf)
+* **Relation Extraction: Perspective from Convolutional Neural Networks** (NAACL 2015), TH Nguyen et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Extraction-Perspective_from_Convolutional_Neural_Networks.md)** [[paper]](http://www.cs.nyu.edu/~thien/pubs/vector15.pdf)
 
 
