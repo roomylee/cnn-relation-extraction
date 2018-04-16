@@ -3,19 +3,76 @@
 Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8**: *Multi-Way Classification of Semantic Relations Between Pairs of Nominals*](https://docs.google.com/document/d/1QO_CnmvNRnYwNWu1-QCAeR5ToQYkXUqFeAJbdEhsq7w/preview)) using Convolutional Neural Networks.
 
 <p align="center">
-	<img width="600" height="400" src="https://user-images.githubusercontent.com/15166794/32838125-475cbdba-ca53-11e7-929c-2e27f1aca180.png">
+	<img width="700" height="400" src="https://user-images.githubusercontent.com/15166794/32838125-475cbdba-ca53-11e7-929c-2e27f1aca180.png">
 </p>
 
 
 ## Usage
-* train
+### Train
+* train data is located in *<U>"SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT"*</U>
+* "[GoogleNews-vectors-negative300](https://code.google.com/archive/p/word2vec/)" is used as pre-trained word2vec model
+* Display help message:
+	```bash
+	$ python train.py --help
+	```
 
-		$ python train.py --train_dir <TRAIN DATA PATH> --word2vec <WORD2VEC MODEL>
+	```bash
+	optional arguments:
+		-h, --help            show this help message and exit
+		--train_dir TRAIN_DIR
+								Path of train data
+		--dev_sample_percentage DEV_SAMPLE_PERCENTAGE
+								Percentage of the training data to use for validation
+		--max_sentence_length MAX_SENTENCE_LENGTH
+								Max sentence length in train(98)/test(70) data
+								(Default: 100)
+		--word2vec WORD2VEC   Word2vec file with pre-trained embeddings
+		--text_embedding_dim TEXT_EMBEDDING_DIM
+								Dimensionality of character embedding (Default: 300)
+		--position_embedding_dim POSITION_EMBEDDING_DIM
+								Dimensionality of position embedding (Default: 100)
+		--filter_sizes FILTER_SIZES
+								Comma-separated filter sizes (Default: 2,3,4,5)
+		--num_filters NUM_FILTERS
+								Number of filters per filter size (Default: 128)
+		--dropout_keep_prob DROPOUT_KEEP_PROB
+								Dropout keep probability (Default: 0.5)
+		--l2_reg_lambda L2_REG_LAMBDA
+								L2 regularization lambda (Default: 3.0)
+		--batch_size BATCH_SIZE
+								Batch Size (Default: 64)
+		--num_epochs NUM_EPOCHS
+								Number of training epochs (Default: 100)
+		--display_every DISPLAY_EVERY
+								Number of iterations to display training info.
+		--evaluate_every EVALUATE_EVERY
+								Evaluate model on dev set after this many steps
+		--checkpoint_every CHECKPOINT_EVERY
+								Save model after this many steps
+		--num_checkpoints NUM_CHECKPOINTS
+								Number of checkpoints to store
+		--learning_rate LEARNING_RATE
+								Which learning rate to start with. (Default: 1e-3)
+		--allow_soft_placement [ALLOW_SOFT_PLACEMENT]
+								Allow device soft device placement
+		--noallow_soft_placement
+		--log_device_placement [LOG_DEVICE_PLACEMENT]
+								Log placement of ops on devices
+		--nolog_device_placement
+	```
 
-* evalutation
+* **Train Example:**
+	```bash
+	$ python train.py --train_dir "TRAIN_FILE.TXT" --word2vec "GoogleNews-vectors-negative300.bin"
+	```
 
-		$ python eval.py --test_dir <TEST DATA PATH>
+### Evalutation
+* test data is located in <U>*"SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT"*</U>
 
+* **Evaluation Example:**
+	```bash
+	$ python eval.py --test_dir "TEST_FILE_FULL.TXT" --checkpoint_dir "runs/1523902663/checkpoints"
+	```
 
 ## SemEval-2010 Task #8
 * Given: a pair of *nominals*
@@ -62,5 +119,6 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 ## Reference
 * **Relation Classification via Convolutional Deep Neural Network** (COLING 2014), D Zeng et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Classification_via_Convolutional_Deep_Neural_Network.md)** [[paper]](http://www.aclweb.org/anthology/C14-1220)
 * **Relation Extraction: Perspective from Convolutional Neural Networks** (NAACL 2015), TH Nguyen et al. **[[review]](https://github.com/roomylee/paper-review/blob/master/relation_extraction/Relation_Extraction-Perspective_from_Convolutional_Neural_Networks.md)** [[paper]](http://www.cs.nyu.edu/~thien/pubs/vector15.pdf)
+* dennybritz's cnn-text-classification-tf repository [[github]](https://github.com/dennybritz/cnn-text-classification-tf)
 
 
