@@ -26,7 +26,6 @@ def clean_str(string):
 
 
 def load_data_and_labels(path):
-    # read training data from CSV file
     data = []
     lines = [line.strip() for line in open(path)]
     for idx in range(0, len(lines), 4):

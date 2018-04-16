@@ -1,39 +1,45 @@
 import tensorflow as tf
+import numpy as np
+import os
 import datetime
+import time
 from text_cnn import TextCNN
 import data_helpers
-import numpy as np
-import time
-import os
-
+from sklearn.metrics import f1_score
+import warnings
+import sklearn.exceptions
+warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
 
 # Parameters
 # ==================================================
 
 # Data loading params
+tf.flags.DEFINE_string("train_dir", "SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT", "Path of train data")
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_integer("max_sentence_length", data_helpers.MAX_SENTENCE_LENGTH, "Max sentence length(containing words count) in train/test data")
-
+tf.flags.DEFINE_integer("max_sentence_length", 100, "Max sentence length in train(98)/test(70) data (Default: 100)")
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
-tf.flags.DEFINE_integer("text_embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
-tf.flags.DEFINE_integer("dist_embedding_dim", 50, "Dimensionality of character embedding (default: 128)")
-tf.flags.DEFINE_string("filter_sizes", "2,3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
-tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
+tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings")
+tf.flags.DEFINE_integer("text_embedding_dim", 300, "Dimensionality of character embedding (Default: 300)")
+tf.flags.DEFINE_integer("position_embedding_dim", 100, "Dimensionality of position embedding (Default: 100)")
+tf.flags.DEFINE_string("filter_sizes", "2,3,4,5", "Comma-separated filter sizes (Default: 2,3,4,5)")
+tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (Default: 128)")
+tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (Default: 0.5)")
+tf.flags.DEFINE_float("l2_reg_lambda", 3.0, "L2 regularization lambda (Default: 3.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
-tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
-tf.flags.DEFINE_float("learning_rate", 1e-3, "Which learning rate to start with.")
+tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (Default: 64)")
+tf.flags.DEFINE_integer("num_epochs", 100, "Number of training epochs (Default: 100)")
+tf.flags.DEFINE_integer("display_every", 10, "Number of iterations to display training info.")
+tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
+tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
+tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
+tf.flags.DEFINE_float("learning_rate", 1e-3, "Which learning rate to start with. (Default: 1e-3)")
+
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+
 
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
@@ -43,33 +49,32 @@ for attr, value in sorted(FLAGS.__flags.items()):
 print("")
 
 
-def train(x_text, dist1, dist2, y):
+def train():
+    with tf.device('/cpu:0'):
+        x_text, pos1, pos2, y = data_helpers.load_data_and_labels(FLAGS.train_dir)
+
     # Build vocabulary
     # Example: x_text[3] = "A misty <e1>ridge</e1> uprises from the <e2>surge</e2>."
     # ['a misty ridge uprises from the surge <UNK> <UNK> ... <UNK>']
     # =>
     # [27 39 40 41 42  1 43  0  0 ... 0]
-    # dimension = MAX_SENTENCE_LENGTH
+    # dimension = FLAGS.max_sentence_length
     text_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(FLAGS.max_sentence_length)
     text_vec = np.array(list(text_vocab_processor.fit_transform(x_text)))
     print("Text Vocabulary Size: {:d}".format(len(text_vocab_processor.vocabulary_)))
 
-    # Example: dist1[3] = [-2 -1  0  1  2   3   4 999 999 999 ... 999]
+    # Example: pos1[3] = [-2 -1  0  1  2   3   4 999 999 999 ... 999]
     # [95 96 97 98 99 100 101 999 999 999 ... 999]
     # =>
     # [11 12 13 14 15  16  21  17  17  17 ...  17]
     # dimension = MAX_SENTENCE_LENGTH
-    dist_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(FLAGS.max_sentence_length)
-    dist_vocab_processor.fit(dist1 + dist2)
-    dist1_vec = np.array(list(dist_vocab_processor.fit_transform(dist1)))
-    dist2_vec = np.array(list(dist_vocab_processor.fit_transform(dist2)))
-    print("Distance Vocabulary Size: {:d}".format(len(dist_vocab_processor.vocabulary_)))
+    pos_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(FLAGS.max_sentence_length)
+    pos_vocab_processor.fit(pos1 + pos2)
+    pos1_vec = np.array(list(pos_vocab_processor.transform(pos1)))
+    pos2_vec = np.array(list(pos_vocab_processor.transform(pos2)))
+    print("Position Vocabulary Size: {:d}".format(len(pos_vocab_processor.vocabulary_)))
 
-    print("text_vec = {0}".format(text_vec.shape))
-    print("dist1_vec = {0}".format(dist1_vec.shape))
-    print("dist2_vec = {0}".format(dist2_vec.shape))
-
-    x = np.array([list(i) for i in zip(text_vec, dist1_vec, dist2_vec)])
+    x = np.array([list(i) for i in zip(text_vec, pos1_vec, pos2_vec)])
 
     print("x = {0}".format(x.shape))
     print("y = {0}".format(y.shape))
@@ -100,27 +105,15 @@ def train(x_text, dist1, dist2, y):
                 num_classes=y_train.shape[1],
                 text_vocab_size=len(text_vocab_processor.vocabulary_),
                 text_embedding_size=FLAGS.text_embedding_dim,
-                dist_vocab_size=len(dist_vocab_processor.vocabulary_),
-                dist_embedding_size=FLAGS.dist_embedding_dim,
+                pos_vocab_size=len(pos_vocab_processor.vocabulary_),
+                pos_embedding_size=FLAGS.position_embedding_dim,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                 num_filters=FLAGS.num_filters,
                 l2_reg_lambda=FLAGS.l2_reg_lambda)
 
             # Define Training procedure
             global_step = tf.Variable(0, name="global_step", trainable=False)
-            optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
-            grads_and_vars = optimizer.compute_gradients(cnn.loss)
-            train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
-
-            # Keep track of gradient values and sparsity (optional)
-            grad_summaries = []
-            for g, v in grads_and_vars:
-                if g is not None:
-                    grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-                    sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
-                    grad_summaries.append(grad_hist_summary)
-                    grad_summaries.append(sparsity_summary)
-            grad_summaries_merged = tf.summary.merge(grad_summaries)
+            train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cnn.loss, global_step=global_step)
 
             # Output directory for models and summaries
             timestamp = str(int(time.time()))
@@ -132,7 +125,7 @@ def train(x_text, dist1, dist2, y):
             acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
             # Train Summaries
-            train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+            train_summary_op = tf.summary.merge([loss_summary, acc_summary])
             train_summary_dir = os.path.join(out_dir, "summaries", "train")
             train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
@@ -150,11 +143,12 @@ def train(x_text, dist1, dist2, y):
 
             # Write vocabulary
             text_vocab_processor.save(os.path.join(out_dir, "text_vocab"))
-            dist_vocab_processor.save(os.path.join(out_dir, "dist_vocab"))
+            pos_vocab_processor.save(os.path.join(out_dir, "position_vocab"))
 
             # Initialize all variables
             sess.run(tf.global_variables_initializer())
 
+            # Pre-trained word2vec
             if FLAGS.word2vec:
                 # initial matrix with random uniform
                 initW = np.random.uniform(-0.25, 0.25, (len(text_vocab_processor.vocabulary_), FLAGS.text_embedding_dim))
@@ -181,43 +175,6 @@ def train(x_text, dist1, dist2, y):
                 sess.run(cnn.W_text.assign(initW))
                 print("Success to load pre-trained word2vec model!\n")
 
-            def train_step(x_batch, y_batch):
-                """
-                A single training step
-                """
-                feed_dict = {
-                    cnn.input_text: x_batch[0],
-                    cnn.input_dist1: x_batch[1],
-                    cnn.input_dist2: x_batch[2],
-                    cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
-                }
-                _, step, summaries, loss, accuracy = sess.run(
-                    [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
-                    feed_dict)
-                time_str = datetime.datetime.now().isoformat()
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-                train_summary_writer.add_summary(summaries, step)
-
-            def dev_step(x_batch, y_batch, writer=None):
-                """
-                Evaluates model on a dev set
-                """
-                feed_dict = {
-                    cnn.input_text: x_batch[0],
-                    cnn.input_dist1: x_batch[1],
-                    cnn.input_dist2: x_batch[2],
-                    cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: 1.0
-                }
-                step, summaries, loss, accuracy = sess.run(
-                    [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
-                    feed_dict)
-                time_str = datetime.datetime.now().isoformat()
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-                if writer:
-                    writer.add_summary(summaries, step)
-
             # Generate batches
             batches = data_helpers.batch_iter(
                 list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
@@ -226,20 +183,51 @@ def train(x_text, dist1, dist2, y):
                 x_batch, y_batch = zip(*batch)
                 x_batch = np.array(x_batch).transpose((1, 0, 2))
 
-                train_step(x_batch, y_batch)
-                current_step = tf.train.global_step(sess, global_step)
-                if current_step % FLAGS.evaluate_every == 0:
+                # Train
+                feed_dict = {
+                    cnn.input_text: x_batch[0],
+                    cnn.input_pos1: x_batch[1],
+                    cnn.input_pos2: x_batch[2],
+                    cnn.input_y: y_batch,
+                    cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
+                }
+                _, step, summaries, loss, accuracy = sess.run(
+                    [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
+                train_summary_writer.add_summary(summaries, step)
+
+                # Training log display
+                if step % FLAGS.display_every == 0:
+                    time_str = datetime.datetime.now().isoformat()
+                    print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+
+                # Evaluation
+                if step % FLAGS.evaluate_every == 0:
                     print("\nEvaluation:")
-                    dev_step(x_dev, y_dev, writer=dev_summary_writer)
-                    print("")
-                if current_step % FLAGS.checkpoint_every == 0:
-                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                    feed_dict = {
+                        cnn.input_text: x_dev[0],
+                        cnn.input_pos1: x_dev[1],
+                        cnn.input_pos2: x_dev[2],
+                        cnn.input_y: y_dev,
+                        cnn.dropout_keep_prob: 1.0
+                    }
+                    summaries, loss, accuracy, predictions = sess.run(
+                        [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict)
+                    dev_summary_writer.add_summary(summaries, step)
+
+                    f = f1_score(np.argmax(y_dev, axis=1), predictions, average="macro")
+
+                    time_str = datetime.datetime.now().isoformat()
+                    print("{}: step {}, loss {:g}, acc {:g}, macro-f {:g}\n".format(time_str, step, loss, accuracy, f))
+
+                # Model checkpoint
+                if step % FLAGS.checkpoint_every == 0:
+                    path = saver.save(sess, checkpoint_prefix, global_step=step)
                     print("Saved model checkpoint to {}\n".format(path))
 
 
-def main(argv=None):
-    x_text, dist1, dist2, y = data_helpers.load_data_and_labels("data/train.csv")
-    train(x_text, dist1, dist2, y)
+def main(_):
+    train()
+
 
 if __name__ == "__main__":
     tf.app.run()
