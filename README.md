@@ -28,7 +28,7 @@ Deep Learning Approach for Relation Extraction Challenge([**SemEval-2010 Task #8
 								(Default: 100)
 		--word2vec WORD2VEC   Word2vec file with pre-trained embeddings
 		--text_embedding_dim TEXT_EMBEDDING_DIM
-								Dimensionality of character embedding (Default: 300)
+								Dimensionality of word embedding (Default: 300)
 		--position_embedding_dim POSITION_EMBEDDING_DIM
 								Dimensionality of position embedding (Default: 100)
 		--filter_sizes FILTER_SIZES
