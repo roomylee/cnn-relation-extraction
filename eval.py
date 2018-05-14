@@ -15,7 +15,6 @@ warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWar
 tf.flags.DEFINE_string("eval_dir", "SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT", "Path of evaluation data")
 
 # Eval Parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (Default: 64)")
 tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
 
 # Misc Parameters
@@ -72,23 +71,17 @@ def eval():
             # Tensors we want to evaluate
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
 
-            # Generate batches for one epoch
-            batches = data_helpers.batch_iter(list(x_eval), FLAGS.batch_size, 1, shuffle=False)
-
-            # Collect the predictions here
-            all_predictions = []
-            for x_eval_batch in batches:
-                x_batch = np.array(x_eval_batch).transpose((1, 0, 2))
-                batch_predictions = sess.run(predictions, {input_text: x_batch[0],
-                                                           input_pos1: x_batch[1],
-                                                           input_pos2: x_batch[2],
-                                                           dropout_keep_prob: 1.0})
-                all_predictions = np.concatenate([all_predictions, batch_predictions])
+            x_eval = np.array(x_eval).transpose((1, 0, 2))
+            all_predictions = sess.run(predictions, {input_text: x_eval[0],
+                                                     input_pos1: x_eval[1],
+                                                     input_pos2: x_eval[2],
+                                                     dropout_keep_prob: 1.0})
 
             correct_predictions = float(sum(all_predictions == y_eval))
             print("Total number of test examples: {}".format(len(y_eval)))
             print("Accuracy: {:g}".format(correct_predictions / float(len(y_eval))))
-            print("Macro-Average F1 Score: {:g}".format(f1_score(y_eval, all_predictions, average="macro")))
+            print("(2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}".format(
+                f1_score(y_eval, all_predictions, labels=np.array(range(1, 19)), average="macro")))
 
 
 def main(_):

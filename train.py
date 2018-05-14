@@ -214,10 +214,10 @@ def train():
                         [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict)
                     dev_summary_writer.add_summary(summaries, step)
 
-                    f = f1_score(np.argmax(y_dev, axis=1), predictions, average="macro")
-
                     time_str = datetime.datetime.now().isoformat()
-                    print("{}: step {}, loss {:g}, acc {:g}, macro-f {:g}\n".format(time_str, step, loss, accuracy, f))
+                    print("{}: step {}, loss {:g}, acc {:g}\n".format(time_str, step, loss, accuracy))
+                    print("(2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}".format(
+                        f1_score(np.argmax(y_dev, axis=1), predictions, labels=np.array(range(1, 19)), average="macro")))
 
                 # Model checkpoint
                 if step % FLAGS.checkpoint_every == 0:
