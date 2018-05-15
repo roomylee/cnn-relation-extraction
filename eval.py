@@ -73,11 +73,18 @@ def eval():
             # Tensors we want to evaluate
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
 
-            x_eval = np.array(x_eval).transpose((1, 0, 2))
-            all_predictions = sess.run(predictions, {input_text: x_eval[0],
-                                                     input_pos1: x_eval[1],
-                                                     input_pos2: x_eval[2],
-                                                     dropout_keep_prob: 1.0})
+            # Generate batches for one epoch
+            batches = data_helpers.batch_iter(list(x_eval), FLAGS.batch_size, 1, shuffle=False)
+
+            # Collect the predictions here
+            all_predictions = []
+            for x_eval_batch in batches:
+                x_batch = np.array(x_eval_batch).transpose((1, 0, 2))
+                batch_predictions = sess.run(predictions, {input_text: x_batch[0],
+                                                           input_pos1: x_batch[1],
+                                                           input_pos2: x_batch[2],
+                                                           dropout_keep_prob: 1.0})
+                all_predictions = np.concatenate([all_predictions, batch_predictions])
 
             labelsMapping = {0: 'Other',
                              1: 'Message-Topic(e1,e2)', 2: 'Message-Topic(e2,e1)',
