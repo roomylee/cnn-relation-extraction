@@ -98,7 +98,7 @@ def eval():
             target_file.close()
 
             correct_predictions = float(sum(all_predictions == y_eval))
-            print("Total number of test examples: {}".format(len(y_eval)))
+            print("\nTotal number of test examples: {}".format(len(y_eval)))
             print("Accuracy: {:g}".format(correct_predictions / float(len(y_eval))))
             print("(2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}".format(
                 f1_score(y_eval, all_predictions, labels=np.array(range(1, 19)), average="macro")))
