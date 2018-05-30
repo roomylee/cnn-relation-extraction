@@ -17,6 +17,7 @@ tf.flags.DEFINE_string("output_dir", "result/prediction.txt", "Path of predictio
 tf.flags.DEFINE_string("target_dir", "result/answer.txt", "Path of target(answer) file for evaluation data")
 
 # Eval Parameters
+tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (Default: 64)")
 tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
 
 # Misc Parameters
