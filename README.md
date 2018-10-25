@@ -9,89 +9,28 @@ Tensorflow Implementation of Deep Learning Approach for Relation Extraction Chal
 
 ## Usage
 ### Train
-* train data is located in "*<U>SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT*</U>".
+* Train data is located in "*<U>SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT*</U>".
 * "[GoogleNews-vectors-negative300](https://code.google.com/archive/p/word2vec/)" is used as pre-trained word2vec model.
-* Display help message:
-	```bash
-	$ python train.py --help
-	```
+* Performance (accuracy and f1-socre) outputs during training are **NOT OFFICIAL SCORE** of *SemEval 2010 Task 8*. To compute the official performance, you should proceed the follow [Evaluation](#evaluation) step with checkpoints obtained by training.
 
-	```bash
-	optional arguments:
-		-h, --help            show this help message and exit
-		--train_dir TRAIN_DIR
-								Path of train data
-		--dev_sample_percentage DEV_SAMPLE_PERCENTAGE
-								Percentage of the training data to use for validation
-		--max_sentence_length MAX_SENTENCE_LENGTH
-								Max sentence length in train(98)/test(70) data
-								(Default: 100)
-		--word2vec WORD2VEC   Word2vec file with pre-trained embeddings
-		--text_embedding_dim TEXT_EMBEDDING_DIM
-								Dimensionality of word embedding (Default: 300)
-		--position_embedding_dim POSITION_EMBEDDING_DIM
-								Dimensionality of position embedding (Default: 100)
-		--filter_sizes FILTER_SIZES
-								Comma-separated filter sizes (Default: 2,3,4,5)
-		--num_filters NUM_FILTERS
-								Number of filters per filter size (Default: 128)
-		--dropout_keep_prob DROPOUT_KEEP_PROB
-								Dropout keep probability (Default: 0.5)
-		--l2_reg_lambda L2_REG_LAMBDA
-								L2 regularization lambda (Default: 3.0)
-		--batch_size BATCH_SIZE
-								Batch Size (Default: 64)
-		--num_epochs NUM_EPOCHS
-								Number of training epochs (Default: 100)
-		--display_every DISPLAY_EVERY
-								Number of iterations to display training info.
-		--evaluate_every EVALUATE_EVERY
-								Evaluate model on dev set after this many steps
-		--checkpoint_every CHECKPOINT_EVERY
-								Save model after this many steps
-		--num_checkpoints NUM_CHECKPOINTS
-								Number of checkpoints to store
-		--learning_rate LEARNING_RATE
-								Which learning rate to start with. (Default: 1e-3)
-		--allow_soft_placement [ALLOW_SOFT_PLACEMENT]
-								Allow device soft device placement
-		--noallow_soft_placement
-		--log_device_placement [LOG_DEVICE_PLACEMENT]
-								Log placement of ops on devices
-		--nolog_device_placement
-	```
-
-* **Train Example:**
-    ```bash
-	$ python train.py --word2vec "GoogleNews-vectors-negative300.bin"
-	```
+##### Display help message:
+```bash
+$ python train.py --help
+```
+##### Train Example:
+```bash
+$ python train.py --word2vec "GoogleNews-vectors-negative300.bin"
+```
 
 ### Evalutation
-* test data is located in "<U>*SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT*</U>".
-* You must give "**checkpoint_dir**" argument, path of checkpoint(trained neural model) file, like below example.
+* You can get an **OFFICIAL SCORE** of *SemEval 2010 Task 8* for test data by following this step. [README](SemEval2010_task8_all_data/SemEval2010_task8_scorer-v1.2/README.txt) describes how to evaluate the official score.
+* Test data is located in "<U>*SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT*</U>".
+* **MUST GIVE `--checkpoint_dir` ARGUMENT**, checkpoint directory from training run, like below example.
 
-* **Evaluation Example:**
-	```bash
-	$ python eval.py --checkpoint_dir "runs/1523902663/checkpoints"
-	```
-
-* **Official Evaluation of SemEval 2010 Task #8**
-	1. After evaluation like the example, you can get the "*prediction.txt*" and "*answer.txt*" in "*result*" directory.
-	2. Install <U>[perl](https://www.perl.org/get.html)</U>.
-	3. Move to <U>*SemEval2010_task8_all_data/SemEval2010_task8_scorer-v1.2*</U>.
-        ```bash
-        $ cd SemEval2010_task8_all_data/SemEval2010_task8_scorer-v1.2
-		```
-	4. Check your prediction file format.
-		```bash
-		$ perl semeval2010_task8_format_checker.pl ../../result/prediction.txt
-		```
-	5. Scoring your prediction.
-		```bash
-		$ perl semeval2010_task8_scorer-v1.2.pl ../../result/prediction.txt ../../result/answer.txt
-		```
-	6. The scorer shows the 3 evaluation reuslts for prediction. The official evaluation result, **(9+1)-WAY EVALUATION TAKING DIRECTIONALITY INTO ACCOUNT -- OFFICIAL**, is the last one. See the [README](SemEval2010_task8_all_data/SemEval2010_task8_scorer-v1.2/README.txt) for more details.
-
+##### Evaluation Example:
+```bash
+$ python eval.py --checkpoint_dir "runs/1523902663/checkpoints/"
+```
 
 
 ## SemEval-2010 Task #8
