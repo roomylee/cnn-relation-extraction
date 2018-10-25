@@ -1,5 +1,4 @@
-w2v_model/
-saved/
+resource/
 runs/
 **/.idea/
 **/__pycache__/
