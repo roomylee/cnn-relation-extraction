@@ -22,7 +22,7 @@ $ python train.py --help
 $ python train.py --word2vec "GoogleNews-vectors-negative300.bin"
 ```
 
-### Evalutation
+### Evaluation
 * You can get an **OFFICIAL SCORE** of *SemEval 2010 Task 8* for test data by following this step. [README](SemEval2010_task8_all_data/SemEval2010_task8_scorer-v1.2/README.txt) describes how to evaluate the official score.
 * Test data is located in "<U>*SemEval2010_task8_all_data/SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT*</U>".
 * **MUST GIVE `--checkpoint_dir` ARGUMENT**, checkpoint directory from training run, like below example.
@@ -31,6 +31,17 @@ $ python train.py --word2vec "GoogleNews-vectors-negative300.bin"
 ```bash
 $ python eval.py --checkpoint_dir "runs/1523902663/checkpoints/"
 ```
+
+
+## Results
+#### Officiail Performance
+![performance](https://user-images.githubusercontent.com/15166794/47507952-24510a00-d8ae-11e8-93e1-339e19d0ab9c.png)
+
+#### Learning Curve (Accuracy)
+![acc](https://user-images.githubusercontent.com/15166794/47508193-988bad80-d8ae-11e8-800c-4f369cf23d35.png)
+
+#### Learning Curve (Loss)
+![loss](https://user-images.githubusercontent.com/15166794/47508195-988bad80-d8ae-11e8-82d6-995367bc8f42.png)
 
 
 ## SemEval-2010 Task #8
