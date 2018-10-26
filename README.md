@@ -19,7 +19,7 @@ $ python train.py --help
 ```
 ##### Train Example:
 ```bash
-$ python train.py --word2vec "GoogleNews-vectors-negative300.bin"
+$ python train.py --embedding_path "GoogleNews-vectors-negative300.bin"
 ```
 
 ### Evaluation
